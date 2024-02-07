@@ -31,7 +31,7 @@ class GoogleAuthUiClient(
         return result?.pendingIntent?.intentSender
     }
 
-    suspend fun getSignInResultFromIntent(intent: Intent): SignInResult {
+    suspend fun signInWithResultFromIntent(intent: Intent): SignInResult {
         val credential = client.getSignInCredentialFromIntent(intent)
         val googleIdToken = credential.googleIdToken
         val googleCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
@@ -52,11 +52,29 @@ class GoogleAuthUiClient(
         }
     }
 
+    suspend fun signOut() {
+        try {
+            client.signOut().await()
+            auth.signOut()
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+
+        }
+    }
+
+    fun getSignedInUser(): UserData? = auth.currentUser?.run {
+        UserData(
+            userId = uid,
+            username = displayName,
+            profilePictureUrl = photoUrl?.toString()
+        )
+    }
+
     private fun buildSignInRequest(): BeginSignInRequest {
         return BeginSignInRequest.Builder().setGoogleIdTokenRequestOptions(
-                GoogleIdTokenRequestOptions.builder().setSupported(true)
-                    .setFilterByAuthorizedAccounts(false)
-                    .setServerClientId(context.getString(R.string.web_client_id)).build()
-            ).setAutoSelectEnabled(true).build()
+            GoogleIdTokenRequestOptions.builder().setSupported(true)
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(context.getString(R.string.web_client_id)).build()
+        ).setAutoSelectEnabled(true).build()
     }
 }
